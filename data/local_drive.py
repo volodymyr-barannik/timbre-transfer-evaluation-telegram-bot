@@ -91,3 +91,25 @@ class AudioDatasetPerFolder(object):
 
     def get_by_target_instrument(self, target_instrument_name) -> [TimbreTransferAudioExample]:
         return [ex for ex in self.examples_list if ex.target_instrument_name == target_instrument_name]
+
+
+class AudioDatasetPerFolderCollection(object):
+
+    def __init__(self, datasets: [AudioDatasetPerFolder]):
+
+        self.datasets: [AudioDatasetPerFolder] = datasets
+
+    def pick_random_audio_example(self):
+        random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
+        random_example = random.sample(random_dataset.examples_list, 1)[0]
+
+        return random_example
+
+    def pick_random_audio_example_by_source_instrument(self, source_instrument: str):
+        random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
+        examples_with_our_source_instrument = [ex for ex in random_dataset.examples_list
+                                               if ex.source_instrument_name == source_instrument]
+        random_example = random.sample(examples_with_our_source_instrument, 1)[0]
+
+        return random_example
+

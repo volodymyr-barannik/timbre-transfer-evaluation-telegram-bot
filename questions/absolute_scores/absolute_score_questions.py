@@ -8,25 +8,8 @@ from data.postgresql import postgresql_operations
 from data.local_drive import TimbreTransferAudioExample
 from data.local_drive_config import REFERENCE_AUDIO_DATASETS
 from data.sqlite import sqlite
+from questions.commons import load_next_audio_example, delete_n_messages_to_be_deleted
 from questions.states import ExampleQuestionsStates
-
-
-def load_next_audio_example(context):
-    current_audio_example: TimbreTransferAudioExample = context.user_data['selected_audio_examples'].pop(0)
-    context.user_data['current_audio_example'] = current_audio_example
-
-    return current_audio_example
-
-
-def delete_n_messages_to_be_deleted(update, context, n):
-    # Retrieve the message IDs from context
-    message_ids = context.user_data['message_to_be_deleted']
-
-    # Delete the last two messages
-    messages_to_remove = deepcopy(message_ids[-n:] if type(n) == int else message_ids)
-    for message_id in messages_to_remove:
-        context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message_id)
-        context.user_data['message_to_be_deleted'].remove(message_id)
 
 
 def ask_question(update, context, max_number_of_examples) -> bool:
@@ -147,14 +130,6 @@ def go_to_next_question(update, context, n_examples):
             load_next_audio_example(context=context)
 
             user = update.effective_chat
-
-            # spreadsheets.record_example_metadata(worksheet=spreadsheets.my_worksheet,
-            #                                      poll_uuid=context.user_data['poll_uuid'],
-            #                                      chat_id=update.effective_chat.id,
-            #                                      username=user.username,
-            #                                      user_first_name=user.first_name,
-            #                                      example_number=context.user_data['example_number'],
-            #                                      example_audio=context.user_data['current_audio_example'])
 
             postgresql_operations.record_example_metadata(conn=postgresql_operations.conn,
                                                           poll_uuid=context.user_data['poll_uuid'],

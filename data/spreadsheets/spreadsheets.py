@@ -7,7 +7,7 @@ from data.spreadsheets.spreadsheets import GSP_SERVICE_ACCOUNT_FILE, GSP_SPREADS
 
 
 # Function to load the credentials and open the Google Sheets document
-from questions.questions import ExampleQuestionsStates
+from questions.absolute_scores.absolute_score_questions import ExampleQuestionsStates
 
 
 def get_worksheet():
