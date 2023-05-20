@@ -63,14 +63,13 @@ def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
 
     if '_' in query.data:
-        # This is one of the answer buttons
         question_number, answer = query.data.split('_')
 
-        # Store this question's answer in user_data
-        context.user_data[question_number] = answer
-
         # Record the response in Google Sheets
-        #spreadsheets.record_response(spreadsheets.my_worksheet, update.effective_chat.id, question_number, answer)
+        spreadsheets.record_response(worksheet=spreadsheets.my_worksheet,
+                                     chat_id=update.effective_chat.id,
+                                     question_number=question_number,
+                                     response=answer)
 
         go_to_next_question(update=update, context=context, n_examples=N)
 
