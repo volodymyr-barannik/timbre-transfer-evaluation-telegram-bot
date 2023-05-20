@@ -14,7 +14,7 @@ class AudioSourceFolder(object):
     def __init__(self, title, dataset, target_instrument, folder_path, filename_wildcard):
 
         self.title = title
-        self.dataset = dataset
+        self.training_dataset = dataset
         self.target_instrument = target_instrument
 
         self.folder_path = folder_path
@@ -47,7 +47,7 @@ class TimbreTransferAudioExample(object):
 
     def __str__(self):
         return f'{self.source_instrument_name} -> {self.target_instrument_name}, \n' \
-               f'ds: {self.src_folder.dataset}, \n' \
+               f'ds: {self.src_folder.training_dataset}, \n' \
                f'path: {self.src_folder.folder_path}'
 
 
