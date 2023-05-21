@@ -83,3 +83,17 @@ def record_response_data(poll_uuid: str,
 
     conn.commit()
     cur.close()
+
+
+def get_n_elo_records() -> int:
+    conn = pg_conn
+    cur = conn.cursor()
+
+    # Insert user if not exists
+    cur.execute("SELECT COUNT(*) FROM elo_record;")
+    result = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+
+    return result

@@ -98,6 +98,9 @@ class RandomEloQuestionsStateMachine(object):
 
         else:
 
+            user = update.effective_chat
+            logging.info(f'User {user.first_name} ({user.id}, {user.username}) finished the poll! ({self.n_examples_to_show} examples)')
+
             self._say_goodbye(update=update, context=context)
             self._current_state = EloState.WaitingForStart
 
@@ -106,8 +109,10 @@ class RandomEloQuestionsStateMachine(object):
 
         if self._current_state == EloState.SuggestingToStart and query.data == 'go':
             print('received go')
-
             user = update.effective_chat
+
+            logging.info(f'User {user.first_name} ({user.id}, {user.username}) started the poll! ({self.n_examples_to_show} examples)')
+
             record_user_data(user_id=user.id,
                              username=user.username,
                              user_first_name=user.first_name)
@@ -124,12 +129,18 @@ class RandomEloQuestionsStateMachine(object):
 
             # The user wants to restart during the poll
             if query.data == 'go':
+                user = update.effective_chat
+                logging.info(f'User {user.first_name} ({user.id}, {user.username}) started the poll while being in the poll! ({self.n_examples_to_show} examples)')
+
                 self._current_state = EloState.WaitingForStart
                 self.suggest_to_start(update=update, context=context)
                 return
 
             current_time = time.time()
             elapsed_time = current_time - self._last_question_timestamp
+
+            user = update.effective_chat
+            logging.info(f'User {user.first_name} ({user.id}, {user.username}) answered a {self._current_question.get_name_of_question_type()} question #{self._current_example_number}/{self.n_examples_to_show} in {elapsed_time:.3f} seconds!')
 
             first_score, second_score = None, None
             try:

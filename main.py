@@ -5,16 +5,37 @@ import time
 import uuid
 from enum import Enum
 from typing import Optional
+import telegram
+from secret import TOKEN, PUSH_BOT_TOKEN, MY_CHAT_ID
+
+
+class TelegramBotHandler(logging.Handler):
+    def __init__(self, token, chat_id):
+        logging.Handler.__init__(self)
+        self.chat_id = chat_id
+        self.bot = telegram.Bot(token=token)
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        self.bot.send_message(chat_id=self.chat_id, text=log_entry)
+
 
 log_file = f"logs/logs.log"
 print(f'Logging to {log_file}')
 
+sys.stdout.reconfigure(encoding='utf-8')
+
+telegram_handler = TelegramBotHandler(token=PUSH_BOT_TOKEN, chat_id=MY_CHAT_ID)
+telegram_handler.setLevel(logging.INFO)
+
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s: %(message)s',
                     handlers=[
-                        logging.FileHandler(log_file),
-                        logging.StreamHandler(sys.stdout)]
-                    )
+                        logging.FileHandler(log_file, encoding='utf-8'),
+                        logging.StreamHandler(sys.stdout),
+                        telegram_handler
+                    ])
+
 
 if platform.system() == 'Windows':
     original_midi_ddsp_module_path = 'E:/Code/Projects/TimbreTransfer/original-midi-ddsp/'
@@ -35,8 +56,8 @@ apply_module_path(original_ddsp_module_path)
 apply_module_path(original_midi_ddsp_module_path)
 
 import itertools
-from secret import TOKEN
 
+from data.postgresql.elo.postgresql_operations import get_n_elo_records
 from data.local_drive_config import EVAL_AUDIO_DATASETS, EVAL_AUDIO_DATASETS_COLLECTION, \
     REFERENCE_AUDIO_DATASETS_COLLECTION
 from questions.absolute_scores.absolute_score_questions import go_to_next_question
@@ -105,6 +126,13 @@ def start(update: Update, context: CallbackContext) -> None:
 def say_that_we_need_to_restart_the_bot(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=f'Hey, we\'ve made some improvements to the bot, so you need to /restart it.')
+
+
+def statistics(update: Update, context: CallbackContext) -> None:
+
+    n_responses: int = get_n_elo_records()
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=f'{n_responses} responses collected.')
 
 
 # Define callback handler for the Go button
@@ -176,6 +204,7 @@ def main() -> None:
     updater.dispatcher.add_handler(CallbackQueryHandler(poll_response))
 
     updater.dispatcher.add_handler(CommandHandler('restart', start))
+    updater.dispatcher.add_handler(CommandHandler('statistics', statistics))
 
     updater.start_polling()
 
