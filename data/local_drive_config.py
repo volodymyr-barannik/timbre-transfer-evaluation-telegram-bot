@@ -14,9 +14,18 @@ EVAL_AUDIO_SOURCES = [
                       folder_path=os.path.join(BASE_FOLDER_DDSP_PATH, 'ddsp_vst'),
                       filename_wildcard=OUT_WILDCARD),
 
+    AudioSourceFolder(title='Magenta DDSP', dataset='?', target_instrument='vn',
+                      folder_path=os.path.join(BASE_FOLDER_DDSP_PATH, 'ddsp16khz'),
+                      filename_wildcard=OUT_WILDCARD),
+
     AudioSourceFolder(title='Magenta MIDI-DDSP', dataset='all', target_instrument='vn',
                       folder_path=os.path.join(BASE_FOLDER_MIDI_DDSP_PATH, 'magenta_midi_ddsp_all'),
                       filename_wildcard=OUT_WILDCARD),
+
+    AudioSourceFolder(title='My MIDI-DDSP', dataset='vn', target_instrument='vn',
+                      folder_path=os.path.join(BASE_FOLDER_MIDI_DDSP_PATH, 'my_midi_ddsp_vn'),
+                      filename_wildcard=OUT_WILDCARD),
+
 
     AudioSourceFolder(title='Magenta SynthCoder', dataset='all', target_instrument='oboe',
                       folder_path=os.path.join(BASE_FOLDER_MIDI_DDSP_PATH, 'magenta_midi_ddsp_all_sc_to_oboe'),
@@ -30,8 +39,9 @@ EVAL_AUDIO_SOURCES = [
                       folder_path=os.path.join(BASE_FOLDER_MIDI_DDSP_PATH, 'magenta_midi_ddsp_all_sc_to_vn'),
                       filename_wildcard=OUT_WILDCARD),
 
+
     AudioSourceFolder(title='SynthCoder without Mel', dataset='all', target_instrument='vn',
-                      folder_path=os.path.join(BASE_FOLDER_MIDI_DDSP_PATH, 'no_mel_midi_ddsp_all_sc_to_vn'),
+                      folder_path=os.path.join(BASE_FOLDER_MIDI_DDSP_PATH, 'midi_ddsp_no_mel_all'),
                       filename_wildcard=OUT_WILDCARD),
 ]
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 from enum import Enum
@@ -8,8 +9,8 @@ import original_midi_ddsp
 BASE_FOLDER_MIDI_DDSP_PATH = 'E:\\Code\\TimbreTransfer_ExperimentExamples\\MIDI_DDSP\\auto'
 BASE_FOLDER_DDSP_PATH = 'E:\\Code\\TimbreTransfer_ExperimentExamples\\DDSP\\'
 BASE_FOLDER_REFERENCE_PATH = 'E:\\Code\\TimbreTransfer_ExperimentExamples\\REFERENCE\\'
-OUT_WILDCARD = '_out.wav'
-IN_WILDCARD = '_in.wav'
+OUT_WILDCARD = '_out_n.wav'
+IN_WILDCARD = '_in_n.wav'
 
 
 class AudioSourceFolder(object):
@@ -31,6 +32,10 @@ class AudioSourceFolder(object):
                self.target_instrument == other.target_instrument and \
                self.folder_path == other.folder_path and \
                self.filename_wildcard == other.filename_wildcard
+
+    def __str__(self):
+        return f'title={self.title}, training_dataset={self.training_dataset}, self.target_instrument={self.target_instrument},' \
+               f'\n folder_path={self.folder_path}, filename_wildcard={self.filename_wildcard}'
 
 
 class AudioExampleInstrumentType(Enum):
@@ -83,6 +88,11 @@ class AudioDatasetPerFolder(object):
 
         self.examples_list: [TimbreTransferAudioExample] = self.get_examples_from_folder(self.src_folder)
 
+        if len(self.examples_list) == 0:
+            logging.warning(f'AudioDatasetPerFolder loaded an empty dataset! Is it intended?'
+                            f'\nsrc_folder: \n{str(src_folder)}')
+
+
     def get_examples_from_folder(self, src_folder):
         folder = src_folder.folder_path
 
@@ -132,10 +142,19 @@ class AudioDatasetPerFolderCollection(object):
     def pick_random_audio_example_by_predicate(self, predicate) -> Optional[TimbreTransferAudioExample]:
         examples_with_our_source_instrument = []
 
+        i: int = 0
         while len(examples_with_our_source_instrument) == 0:
+
             random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
+
+            if i > 10:
+                logging.warning(f'Picking random audio example by predicate takes too long. '
+                                f'\nCandidate: {str(random_dataset.src_folder)}')
+
             examples_with_our_source_instrument = [ex for ex in random_dataset.examples_list
                                                    if predicate(ex)]
+
+            i = i+1
 
         random_example: TimbreTransferAudioExample = random.sample(examples_with_our_source_instrument, 1)[0]
 

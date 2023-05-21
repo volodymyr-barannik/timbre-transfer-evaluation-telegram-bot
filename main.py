@@ -1,8 +1,19 @@
+import logging
 import platform
 import sys
 import time
 import uuid
 from enum import Enum
+
+log_file = f"logs/logs.log"
+print(f'Logging to {log_file}')
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s: %(message)s',
+                    handlers=[
+                        logging.FileHandler(log_file),
+                        logging.StreamHandler(sys.stdout)]
+                    )
 
 if platform.system() == 'Windows':
     original_midi_ddsp_module_path = 'E:/Code/Projects/TimbreTransfer/original-midi-ddsp/'
@@ -16,6 +27,7 @@ def apply_module_path(module_path):
         print(f"appending {module_path} to sys.path")
     else:
         print(f"do not appending {module_path} to sys.path")
+
 
 # It should always be on top!
 apply_module_path(original_ddsp_module_path)
@@ -77,10 +89,10 @@ def start(update: Update, context: CallbackContext) -> None:
     elif MODE == PollMode.ELO:
 
         state_machine = RandomEloQuestionsStateMachine(
-                n_examples_to_show=N_EXAMPLES,
-                question_types=[SoundQualityEloQuestion, TimbreSimilarityEloQuestion],
-                eval_datasets=EVAL_AUDIO_DATASETS_COLLECTION,
-                reference_datasets=REFERENCE_AUDIO_DATASETS_COLLECTION)
+            n_examples_to_show=N_EXAMPLES,
+            question_types=[SoundQualityEloQuestion, TimbreSimilarityEloQuestion],
+            eval_datasets=EVAL_AUDIO_DATASETS_COLLECTION,
+            reference_datasets=REFERENCE_AUDIO_DATASETS_COLLECTION)
 
         context.user_data['state_machine'] = state_machine
         state_machine.suggest_to_start(update=update, context=context)
