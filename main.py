@@ -17,7 +17,7 @@ def apply_module_path(module_path):
     else:
         print(f"do not appending {module_path} to sys.path")
 
-
+# It should always be on top!
 apply_module_path(original_ddsp_module_path)
 apply_module_path(original_midi_ddsp_module_path)
 
@@ -34,6 +34,7 @@ from questions.states import ExampleQuestionsStates
 from questions.commons import delete_n_messages_to_be_deleted
 from questions.elo.elo_questions import RandomEloQuestionsStateMachine
 from questions.elo.sound_quality_elo_question import SoundQualityEloQuestion
+from questions.elo.timbre_similarity_elo_question import TimbreSimilarityEloQuestion
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
@@ -77,7 +78,7 @@ def start(update: Update, context: CallbackContext) -> None:
 
         state_machine = RandomEloQuestionsStateMachine(
                 n_examples_to_show=N_EXAMPLES,
-                question_types=[SoundQualityEloQuestion],
+                question_types=[SoundQualityEloQuestion, TimbreSimilarityEloQuestion],
                 eval_datasets=EVAL_AUDIO_DATASETS_COLLECTION,
                 reference_datasets=REFERENCE_AUDIO_DATASETS_COLLECTION)
 

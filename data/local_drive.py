@@ -1,5 +1,8 @@
 import os
 import random
+from enum import Enum
+from typing import Optional
+
 import original_midi_ddsp
 
 BASE_FOLDER_MIDI_DDSP_PATH = 'E:\\Code\\TimbreTransfer_ExperimentExamples\\MIDI_DDSP\\auto'
@@ -12,7 +15,6 @@ IN_WILDCARD = '_in.wav'
 class AudioSourceFolder(object):
 
     def __init__(self, title, dataset, target_instrument, folder_path, filename_wildcard):
-
         self.title = title
         self.training_dataset = dataset
         self.target_instrument = target_instrument
@@ -22,6 +24,18 @@ class AudioSourceFolder(object):
 
     def full(self):
         return os.path.join(self.folder_path, self.filename_wildcard)
+
+    def is_same_as(self, other):
+        return self.title == other.title and \
+               self.training_dataset == other.training_dataset and \
+               self.target_instrument == other.target_instrument and \
+               self.folder_path == other.folder_path and \
+               self.filename_wildcard == other.filename_wildcard
+
+
+class AudioExampleInstrumentType(Enum):
+    SourceInstrument = 1
+    TargetInstrument = 2
 
 
 class TimbreTransferAudioExample(object):
@@ -50,6 +64,17 @@ class TimbreTransferAudioExample(object):
                f'ds: {self.src_folder.training_dataset}, \n' \
                f'path: {self.src_folder.folder_path}'
 
+    def get_instrument_by_type(self, instrument_type: AudioExampleInstrumentType):
+        res: Optional[str] = None
+        if instrument_type == AudioExampleInstrumentType.SourceInstrument:
+            res = self.source_instrument_name
+        elif instrument_type == AudioExampleInstrumentType.TargetInstrument:
+            res = self.target_instrument_name
+        else:
+            raise Exception()
+
+        return res
+
 
 class AudioDatasetPerFolder(object):
 
@@ -59,7 +84,6 @@ class AudioDatasetPerFolder(object):
         self.examples_list: [TimbreTransferAudioExample] = self.get_examples_from_folder(self.src_folder)
 
     def get_examples_from_folder(self, src_folder):
-
         folder = src_folder.folder_path
 
         outs = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(OUT_WILDCARD)]
@@ -99,17 +123,20 @@ class AudioDatasetPerFolderCollection(object):
 
         self.datasets: [AudioDatasetPerFolder] = datasets
 
-    def pick_random_audio_example(self):
+    def pick_random_audio_example(self) -> TimbreTransferAudioExample:
         random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
-        random_example = random.sample(random_dataset.examples_list, 1)[0]
+        random_example: TimbreTransferAudioExample = random.sample(random_dataset.examples_list, 1)[0]
 
         return random_example
 
-    def pick_random_audio_example_by_source_instrument(self, source_instrument: str):
-        random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
-        examples_with_our_source_instrument = [ex for ex in random_dataset.examples_list
-                                               if ex.source_instrument_name == source_instrument]
-        random_example = random.sample(examples_with_our_source_instrument, 1)[0]
+    def pick_random_audio_example_by_predicate(self, predicate) -> Optional[TimbreTransferAudioExample]:
+        examples_with_our_source_instrument = []
+
+        while len(examples_with_our_source_instrument) == 0:
+            random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
+            examples_with_our_source_instrument = [ex for ex in random_dataset.examples_list
+                                                   if predicate(ex)]
+
+        random_example: TimbreTransferAudioExample = random.sample(examples_with_our_source_instrument, 1)[0]
 
         return random_example
-
