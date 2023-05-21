@@ -27,5 +27,4 @@ def normalize_wav_files_in_dir(directory):
                 new_filepath = os.path.splitext(filepath)[0] + '_n.wav'
                 normalize_audio_file(filepath, new_filepath)
 
-
-# normalize_wav_files_in_dir('E:\\Code\\TimbreTransfer_ExperimentExamples\\REFERENCE')
+# normalize_wav_files_in_dir('E:\\Code\\TimbreTransfer_ExperimentExamples\\DDSP\\ddsp_vst2')

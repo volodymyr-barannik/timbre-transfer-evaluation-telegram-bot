@@ -1,3 +1,4 @@
+import logging
 import random
 import time
 import uuid
@@ -11,8 +12,8 @@ from data.local_drive import TimbreTransferAudioExample, AudioDatasetPerFolder, 
 from data.postgresql.elo.postgresql_operations import record_user_data, record_example_data, record_response_data
 from questions.elo.base_elo_question import BaseEloQuestion
 from questions.elo.sound_quality_elo_question import SoundQualityEloQuestion
-from questions.elo.timbre_similarity_elo_question import TimbreSimilarityEloQuestion, \
-    AudioExampleInstrumentType
+from questions.elo.timbre_similarity_elo_question import BaseTimbreSimilarityEloQuestion, \
+    AudioExampleInstrumentType, SourceTimbreSimilarityEloQuestion, TargetTimbreSimilarityEloQuestion
 from questions.states import ExampleQuestionsStates
 
 
@@ -26,11 +27,11 @@ class RandomEloQuestionsStateMachine(object):
 
     def __init__(self,
                  n_examples_to_show: int,
-                 question_types: [BaseEloQuestion],
+                 question_types_and_probabilities: {BaseEloQuestion: float},
                  eval_datasets: AudioDatasetPerFolderCollection,
                  reference_datasets: AudioDatasetPerFolderCollection):
         self.n_examples_to_show = n_examples_to_show
-        self.question_types: [BaseEloQuestion] = question_types
+        self.question_types_and_probabilities: {BaseEloQuestion: float} = question_types_and_probabilities
 
         self._current_state: EloState = EloState.WaitingForStart  # Not started yet
         self._current_example_number = 0  # Not started yet
@@ -47,7 +48,9 @@ class RandomEloQuestionsStateMachine(object):
         self._last_question_timestamp: Optional[int] = None
 
     def _get_random_question_type(self):
-        return random.sample(self.question_types, 1)[0]
+        return random.choices(population=list(self.question_types_and_probabilities.keys()),
+                              weights=list(self.question_types_and_probabilities.values()),
+                              k=1)[0]
 
     def suggest_to_start(self, update: Update, context: CallbackContext):
 
@@ -75,14 +78,13 @@ class RandomEloQuestionsStateMachine(object):
             if self._current_question_type is SoundQualityEloQuestion:
                 self._current_question = SoundQualityEloQuestion(eval_datasets=self._eval_datasets)
 
-            elif self._current_question_type is TimbreSimilarityEloQuestion:
+            elif self._current_question_type is SourceTimbreSimilarityEloQuestion:
+                self._current_question = SourceTimbreSimilarityEloQuestion(eval_datasets=self._eval_datasets,
+                                                                           reference_datasets=self._reference_datasets)
 
-                random_instrument_type = random.sample([AudioExampleInstrumentType.SourceInstrument,
-                                                        AudioExampleInstrumentType.TargetInstrument], 1)[0]
-
-                self._current_question = TimbreSimilarityEloQuestion(eval_datasets=self._eval_datasets,
-                                                                     reference_datasets=self._reference_datasets,
-                                                                     instrument_type=random_instrument_type)
+            elif self._current_question_type is TargetTimbreSimilarityEloQuestion:
+                self._current_question = TargetTimbreSimilarityEloQuestion(eval_datasets=self._eval_datasets,
+                                                                           reference_datasets=self._reference_datasets)
 
             else:
                 raise NotImplemented()
@@ -120,10 +122,20 @@ class RandomEloQuestionsStateMachine(object):
 
         elif self._current_state == EloState.Polling:
 
+            # The user wants to restart during the poll
+            if query.data == 'go':
+                self._current_state = EloState.WaitingForStart
+                self.suggest_to_start(update=update, context=context)
+                return
+
             current_time = time.time()
             elapsed_time = current_time - self._last_question_timestamp
 
-            _, first_score, _, second_score = query.data.split('_')[1:]
+            first_score, second_score = None, None
+            try:
+                _, first_score, _, second_score = query.data.split('_')[1:]
+            except (ValueError, IndexError) as e:
+                logging.error(f'Unable to unpack query.data: {query.data}')
 
             audio_example_1 = self._current_question.eval_audio_example_1
             audio_example_2 = self._current_question.eval_audio_example_2

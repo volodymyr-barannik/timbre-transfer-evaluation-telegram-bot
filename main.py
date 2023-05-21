@@ -4,6 +4,7 @@ import sys
 import time
 import uuid
 from enum import Enum
+from typing import Optional
 
 log_file = f"logs/logs.log"
 print(f'Logging to {log_file}')
@@ -46,7 +47,8 @@ from questions.states import ExampleQuestionsStates
 from questions.commons import delete_n_messages_to_be_deleted
 from questions.elo.elo_questions import RandomEloQuestionsStateMachine
 from questions.elo.sound_quality_elo_question import SoundQualityEloQuestion
-from questions.elo.timbre_similarity_elo_question import TimbreSimilarityEloQuestion
+from questions.elo.timbre_similarity_elo_question import BaseTimbreSimilarityEloQuestion, \
+    SourceTimbreSimilarityEloQuestion, TargetTimbreSimilarityEloQuestion
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
@@ -90,12 +92,19 @@ def start(update: Update, context: CallbackContext) -> None:
 
         state_machine = RandomEloQuestionsStateMachine(
             n_examples_to_show=N_EXAMPLES,
-            question_types=[SoundQualityEloQuestion, TimbreSimilarityEloQuestion],
+            question_types_and_probabilities={SoundQualityEloQuestion: 0.3,
+                                              SourceTimbreSimilarityEloQuestion: 0.3,
+                                              TargetTimbreSimilarityEloQuestion: 0.4},
             eval_datasets=EVAL_AUDIO_DATASETS_COLLECTION,
             reference_datasets=REFERENCE_AUDIO_DATASETS_COLLECTION)
 
         context.user_data['state_machine'] = state_machine
         state_machine.suggest_to_start(update=update, context=context)
+
+
+def say_that_we_need_to_restart_the_bot(update: Update, context: CallbackContext):
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=f'Hey, we\'ve made some improvements to the bot, so you need to /restart it.')
 
 
 # Define callback handler for the Go button
@@ -144,7 +153,12 @@ def poll_response(update: Update, context: CallbackContext) -> None:
 
     elif MODE == PollMode.ELO:
 
-        state_machine: RandomEloQuestionsStateMachine = context.user_data['state_machine']
+        state_machine: Optional[RandomEloQuestionsStateMachine] = None
+        if 'state_machine' in context.user_data:
+            state_machine: RandomEloQuestionsStateMachine = context.user_data['state_machine']
+        else:
+            say_that_we_need_to_restart_the_bot(update=update, context=context)
+            return
 
         state_machine.process_reply(update=update, context=context)
         state_machine.ask_next_question(update=update, context=context)
@@ -161,7 +175,7 @@ def main() -> None:
     updater.dispatcher.add_handler(CommandHandler('start', start))
     updater.dispatcher.add_handler(CallbackQueryHandler(poll_response))
 
-    updater.dispatcher.add_handler(CommandHandler('restart', restart))
+    updater.dispatcher.add_handler(CommandHandler('restart', start))
 
     updater.start_polling()
 

@@ -28,7 +28,7 @@ class SoundQualityEloQuestion(BaseEloQuestion):
             ],
         ]
 
-    def ask_user(self, update: Update, context: CallbackContext, debug=True):
+    def ask_user(self, update: Update, context: CallbackContext, debug=False):
         # Send audio #1 for evaluation
 
         with open(self.eval_audio_example_1.path, 'rb') as evaluation_audio_file:

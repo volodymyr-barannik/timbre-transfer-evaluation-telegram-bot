@@ -11,7 +11,7 @@ EVAL_AUDIO_SOURCES = [
                       filename_wildcard=IN_WILDCARD),
 
     AudioSourceFolder(title='Magenta DDSP-VST', dataset='?', target_instrument='vn',
-                      folder_path=os.path.join(BASE_FOLDER_DDSP_PATH, 'ddsp_vst'),
+                      folder_path=os.path.join(BASE_FOLDER_DDSP_PATH, 'ddsp_vst2'),
                       filename_wildcard=OUT_WILDCARD),
 
     AudioSourceFolder(title='Magenta DDSP', dataset='?', target_instrument='vn',
