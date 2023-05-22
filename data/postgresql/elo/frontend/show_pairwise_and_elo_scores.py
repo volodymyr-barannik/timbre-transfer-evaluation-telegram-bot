@@ -71,10 +71,16 @@ def get_elo(cur):
 # Open a cursor to perform database operations
 cur = conn.cursor()
 
+generate_separate_plots = True  # Set to True for separate plots, False for a single big plot
+
 question_types = ['sound_quality', 'timbre_similarity_source', 'timbre_similarity_target']
+question_types_subplot_titles = ['Sound quality', 'Timbre similarity to source instrument', 'Timbre similarity to target instrument']
 
+fontsize = 22
 
-fig = make_subplots(rows=3, cols=1, subplot_titles=question_types)
+fig = make_subplots(rows=3, cols=1,
+                    subplot_titles=question_types_subplot_titles,
+                    vertical_spacing=0.1)
 
 for idx, question_type in enumerate(question_types, start=1):
 
@@ -83,13 +89,21 @@ for idx, question_type in enumerate(question_types, start=1):
         SELECT e1.model_path, e1.model_title, e1.training_dataset, SUM(CASE WHEN er.example1_score >= er.example2_score AND er.example1_score != 0 THEN 1 ELSE 0 END) AS wins
         FROM elo_record er
         INNER JOIN examples e1 ON er.example1_id = e1.example_id
-        WHERE er.question_type = %s
+        INNER JOIN examples e2 ON er.example2_id = e2.example_id
+        WHERE er.question_type = %s 
+            AND CASE WHEN e1.model_title = 'Input (gt)' THEN
+                (CASE WHEN er.question_type = 'timbre_similarity_target' THEN e1.target_instrument != e1.source_instrument ELSE TRUE END)
+            ELSE TRUE END
         GROUP BY e1.model_path, e1.model_title, e1.training_dataset
         UNION ALL
         SELECT e2.model_path, e2.model_title, e2.training_dataset, SUM(CASE WHEN er.example2_score >= er.example1_score AND er.example2_score != 0 THEN 1 ELSE 0 END) AS wins
         FROM elo_record er
         INNER JOIN examples e2 ON er.example2_id = e2.example_id
-        WHERE er.question_type = %s
+        INNER JOIN examples e1 ON er.example1_id = e1.example_id
+        WHERE er.question_type = %s 
+            AND CASE WHEN e1.model_title = 'Input (gt)' THEN
+                (CASE WHEN er.question_type = 'timbre_similarity_target' THEN e2.target_instrument != e2.source_instrument ELSE TRUE END)
+            ELSE TRUE END
         GROUP BY e2.model_path, e2.model_title, e2.training_dataset;
     """, (question_type, question_type))
 
@@ -106,13 +120,21 @@ for idx, question_type in enumerate(question_types, start=1):
         SELECT e1.model_path, e1.model_title, e1.training_dataset, SUM(CASE WHEN er.example1_score > er.example2_score THEN 1 ELSE 0 END) AS wins
         FROM elo_record er
         INNER JOIN examples e1 ON er.example1_id = e1.example_id
-        WHERE er.question_type = %s
+        INNER JOIN examples e2 ON er.example2_id = e2.example_id
+        WHERE er.question_type = %s 
+            AND CASE WHEN e1.model_title = 'Input (gt)' THEN
+                (CASE WHEN er.question_type = 'timbre_similarity_target' THEN e1.target_instrument != e1.source_instrument ELSE TRUE END)
+            ELSE TRUE END        
         GROUP BY e1.model_path, e1.model_title, e1.training_dataset
         UNION ALL
         SELECT e2.model_path, e2.model_title, e2.training_dataset, SUM(CASE WHEN er.example2_score > er.example1_score THEN 1 ELSE 0 END) AS wins
         FROM elo_record er
         INNER JOIN examples e2 ON er.example2_id = e2.example_id
-        WHERE er.question_type = %s
+        INNER JOIN examples e1 ON er.example1_id = e1.example_id
+        WHERE er.question_type = %s 
+            AND CASE WHEN e1.model_title = 'Input (gt)' THEN
+                (CASE WHEN er.question_type = 'timbre_similarity_target' THEN e2.target_instrument != e2.source_instrument ELSE TRUE END)
+            ELSE TRUE END
         GROUP BY e2.model_path, e2.model_title, e2.training_dataset;
     """, (question_type, question_type))
 
@@ -129,13 +151,22 @@ for idx, question_type in enumerate(question_types, start=1):
         SELECT e1.model_path, e1.model_title, e1.training_dataset, COUNT(*) AS appearances 
         FROM elo_record er
         INNER JOIN examples e1 ON er.example1_id = e1.example_id
-        WHERE er.question_type = %s
+        INNER JOIN examples e2 ON er.example2_id = e1.example_id
+        WHERE er.question_type = %s 
+            AND CASE WHEN e1.model_title = 'Input (gt)' THEN
+                (CASE WHEN er.question_type = 'timbre_similarity_target' THEN e1.target_instrument != e1.source_instrument ELSE TRUE END)
+            ELSE TRUE END
+            
         GROUP BY e1.model_path, e1.model_title, e1.training_dataset
         UNION ALL
         SELECT e2.model_path, e2.model_title, e2.training_dataset, COUNT(*) AS appearances 
         FROM elo_record er
         INNER JOIN examples e2 ON er.example2_id = e2.example_id
-        WHERE er.question_type = %s
+        INNER JOIN examples e1 ON er.example1_id = e1.example_id
+        WHERE er.question_type = %s 
+            AND CASE WHEN e1.model_title = 'Input (gt)' THEN
+                (CASE WHEN er.question_type = 'timbre_similarity_target' THEN e2.target_instrument != e2.source_instrument ELSE TRUE END)
+            ELSE TRUE END
         GROUP BY e2.model_path, e2.model_title, e2.training_dataset;
     """, (question_type, question_type))
 
@@ -159,11 +190,11 @@ for idx, question_type in enumerate(question_types, start=1):
     print('appearances_count=')
     pprint(appearances_count)
 
-    wrapper = textwrap.TextWrapper(width=10)  # You can adjust the width as needed
+    wrapper = textwrap.TextWrapper(width=25)  # You can adjust the width as needed
 
     def get_names_for_keys(keys):
         return [wrapper.fill(f'{model_title}'
-                f'\n{training_dataset}').replace('\n', '<br>') for model_path, model_title, training_dataset in keys]
+                f'<br>Dataset: {training_dataset}').replace('\n', '<br>') for model_path, model_title, training_dataset in keys]
 
     print(f'names for keys: {get_names_for_keys(list(appearances_count.keys()))}')
 
@@ -174,47 +205,98 @@ for idx, question_type in enumerate(question_types, start=1):
 
     number_of_wins_to_appearances = {kw: vw/va for (kw, vw), (ka, va) in zip(wins_count.items(), appearances_count.items())}
 
-    # Create a plotly bar chart
-    fig.add_trace(go.Bar(name='Total Appearances',
-               x=get_names_for_keys(list(appearances_count.keys())),
-               y=list(appearances_count.values()),
-               marker_color='#9cc2ff'),
-               row=idx, col=1)
+    def show_only(good, count: dict):
+        return {k: v for k, v in count.items() if k[0] in good}
 
-    fig.add_trace(go.Bar(name='Wins',
-               x=get_names_for_keys(list(wins_count.keys())),
-               y=list(wins_count.values()),
-               marker_color='orange', opacity=1),
-               row=idx, col=1)
+    show_only_paths = ['E:\\Code\\TimbreTransfer_ExperimentExamples\\DDSP\\ddsp16khz',
+                       'E:\\Code\\TimbreTransfer_ExperimentExamples\\DDSP\\ddsp_vst2',
+                       'E:\\Code\\TimbreTransfer_ExperimentExamples\\MIDI_DDSP\\auto\\magenta_midi_ddsp_all',
+                       'E:\\Code\\TimbreTransfer_ExperimentExamples\\MIDI_DDSP\\auto\\my_midi_ddsp_vn',
+                       'E:\\Code\\TimbreTransfer_ExperimentExamples\\MIDI_DDSP\\auto\\inputs_gt',]
 
-    # fig.add_trace(go.Bar(name='number_of_wins_to_appearances',
-    #            x=get_names_for_keys(list(number_of_wins_to_appearances.keys())),
-    #            y=list(number_of_wins_to_appearances.values()),
-    #            marker_color='red', opacity=1),
-    #            row=idx, col=1)
+    #wins_count = show_only(show_only_paths, wins_count)
+    #appearances_count = show_only(show_only_paths, appearances_count)
 
-    # fig.add_trace(go.Bar(name='Elo rating',
-    #            x=get_names_for_keys(list(elo_ratings.keys())),
-    #            y=list(elo_ratings.values()),
-    #            marker_color='red', opacity=1),
-    #            row=idx, col=1)
+    if generate_separate_plots:
 
-    # fig.add_trace(go.Bar(name='Wins or both good',
-    #           x=get_names_for_keys(list(wins_or_same_count.keys())),
-    #           y=list(wins_or_same_count.values()),
-    #           marker_color='yellow', opacity=0.5),
-    #           row=idx, col=1)
+        fig = make_subplots(rows=1, cols=1,
+                            subplot_titles=[question_types_subplot_titles[idx - 1]])
+
+        # Add the bar chart to the figure
+        fig.add_trace(go.Bar(name='Total Appearances',
+                             x=get_names_for_keys(list(appearances_count.keys())),
+                             y=list(appearances_count.values()),
+                             marker_color='#9cc2ff',
+                             textfont=dict(size=fontsize)))
+
+        fig.add_trace(go.Bar(name='Wins',
+                             x=get_names_for_keys(list(wins_count.keys())),
+                             y=list(wins_count.values()),
+                             marker_color='orange', opacity=1))
+
+        fig.update_layout(width=1800, height=2100/2.5,
+                          barmode='overlay',
+                          title_text=f'Number of Wins and Total Appearances - {question_types_subplot_titles[idx - 1]}',
+                          yaxis_title='Count',
+                          font=dict(family="Calibri", size=fontsize),
+                          legend=dict(x=0, y=1, orientation='h'))
+
+        # Display the plot
+        fig.show()
+
+    else:
+
+        # Create a plotly bar chart
+        fig.add_trace(go.Bar(name='Total Appearances',
+                   x=get_names_for_keys(list(appearances_count.keys())),
+                   y=list(appearances_count.values()),
+                   marker_color='#9cc2ff',
+                   textfont=dict(size=fontsize)),
+                   row=idx, col=1,)
+
+        fig.add_trace(go.Bar(name='Wins',
+                   x=get_names_for_keys(list(wins_count.keys())),
+                   y=list(wins_count.values()),
+                   marker_color='orange', opacity=1),
+                   row=idx, col=1)
+
+        # fig.add_trace(go.Bar(name='number_of_wins_to_appearances',
+        #            x=get_names_for_keys(list(number_of_wins_to_appearances.keys())),
+        #            y=list(number_of_wins_to_appearances.values()),
+        #            marker_color='red', opacity=1),
+        #            row=idx, col=1)
+
+        # fig.add_trace(go.Bar(name='Elo rating',
+        #            x=get_names_for_keys(list(elo_ratings.keys())),
+        #            y=list(elo_ratings.values()),
+        #            marker_color='red', opacity=1),
+        #            row=idx, col=1)
+
+        # fig.add_trace(go.Bar(name='Wins or both good',
+        #           x=get_names_for_keys(list(wins_or_same_count.keys())),
+        #           y=list(wins_or_same_count.values()),
+        #           marker_color='yellow', opacity=0.5),
+        #           row=idx, col=1)
 
 
-# Change the bar mode
-fig.update_layout(width=1920, height=1080,
-                  barmode='overlay',
-                  title_text=f'Number of Wins and Total Appearances per Question Type.',
-                  xaxis_title='Pair (model_path, training_dataset)',
-                  yaxis_title='Count',)
+if not generate_separate_plots:
 
-# Display the plot
-fig.show()
+    for i, title in enumerate(question_types_subplot_titles):
+        fig['layout']['annotations'][i]['font']['size'] = fontsize
+        fig['layout']['annotations'][i]['text'] = f"<b><span style='font-size:{fontsize}px'>{title}</span></b>"
+
+    # Change the bar mode
+    fig.update_layout(width=1800, height=2100,
+                      barmode='overlay',
+                      title_text=f'Number of Wins and Total Appearances per Question Type.',
+                      yaxis_title='Count',
+                      font=dict(family="Calibri", size=fontsize),
+                      legend=dict(x=0, y=1.15, orientation='h'),
+                      )
+
+
+    # Display the plot
+    fig.show()
 
 # Close communication with the database
 cur.close()
