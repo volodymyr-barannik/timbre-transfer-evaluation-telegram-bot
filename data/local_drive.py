@@ -148,8 +148,14 @@ class AudioDatasetPerFolderCollection(object):
             random_dataset: AudioDatasetPerFolder = random.sample(self.datasets, 1)[0]
 
             if i > 10:
-                logging.warning(f'Picking random audio example by predicate takes too long. '
+                logging.debug(f'Picking random audio example by predicate takes too long. '
                                 f'\nCandidate: {str(random_dataset.src_folder)}')
+
+            if i > 100:
+                logging.warning(f'Picking random audio example by predicate takes very long. '
+                                f'\nCandidate: {str(random_dataset.src_folder)}')
+
+                raise Exception()
 
             examples_with_our_source_instrument = [ex for ex in random_dataset.examples_list
                                                    if predicate(ex)]

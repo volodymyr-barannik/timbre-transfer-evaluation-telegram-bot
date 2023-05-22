@@ -15,27 +15,34 @@ class BaseTimbreSimilarityEloQuestion(BaseEloQuestion):
                  eval_datasets: AudioDatasetPerFolderCollection,
                  reference_datasets: AudioDatasetPerFolderCollection,
                  instrument_type: AudioExampleInstrumentType):
-        eval_audio_example_1: TimbreTransferAudioExample = eval_datasets.pick_random_audio_example()
 
         self._instrument_type = instrument_type
 
-        self._instrument_to_compare_against: str = eval_audio_example_1.get_instrument_by_type(
-            instrument_type=self._instrument_type)
+        eval_audio_example_1 = None
+        eval_audio_example_2 = None
 
-        def has_good_instrument_and_is_from_other_dataset(ex: TimbreTransferAudioExample):
-            ex_instr = ex.get_instrument_by_type(instrument_type=self._instrument_type)
+        while eval_audio_example_2 is None:
+            eval_audio_example_1: TimbreTransferAudioExample = eval_datasets.pick_random_audio_example()
+            self._instrument_to_compare_against: str = eval_audio_example_1.get_instrument_by_type(instrument_type=self._instrument_type)
 
-            opt_different_targets = True
-            if self._instrument_type == AudioExampleInstrumentType.TargetInstrument:
-                opt_different_targets = eval_audio_example_1.target_instrument_name != eval_audio_example_1.source_instrument_name
+            def has_good_instrument_and_is_from_other_dataset(ex: TimbreTransferAudioExample):
+                ex_instr = ex.get_instrument_by_type(instrument_type=self._instrument_type)
 
-            return ex_instr == self._instrument_to_compare_against \
-                   and not ex.src_folder.is_same_as(eval_audio_example_1.src_folder) \
-                   and opt_different_targets
+                opt_different_targets = True
+                if self._instrument_type == AudioExampleInstrumentType.TargetInstrument:
+                    opt_different_targets = eval_audio_example_1.target_instrument_name != eval_audio_example_1.source_instrument_name
 
-        # Extract second audio with same _instrument_type instrument
-        eval_audio_example_2: TimbreTransferAudioExample = eval_datasets.pick_random_audio_example_by_predicate(
-            predicate=has_good_instrument_and_is_from_other_dataset)
+                return ex_instr == self._instrument_to_compare_against \
+                       and not ex.src_folder.is_same_as(eval_audio_example_1.src_folder) \
+                       and opt_different_targets
+
+            try:
+                # Extract second audio with same _instrument_type instrument
+                eval_audio_example_2: TimbreTransferAudioExample = eval_datasets.pick_random_audio_example_by_predicate(
+                    predicate=has_good_instrument_and_is_from_other_dataset)
+            except (Exception) as e:
+                pass
+
 
         super().__init__(eval_audio_example_1=eval_audio_example_1,
                          eval_audio_example_2=eval_audio_example_2)
@@ -46,11 +53,11 @@ class BaseTimbreSimilarityEloQuestion(BaseEloQuestion):
 
         self.keyboard = [
             [
-                InlineKeyboardButton("Nobody", callback_data=f'ELO_1_0_2_0'),  # ELO_Example_Score
+                InlineKeyboardButton("None", callback_data=f'ELO_1_0_2_0'),  # ELO_Example_Score
                 InlineKeyboardButton("Audio #1", callback_data=f'ELO_1_1_2_0'),
                 # _instrument_type defines whether it's a positive or negative question
                 InlineKeyboardButton("Audio #2", callback_data=f'ELO_1_0_2_1'),
-                InlineKeyboardButton("Both same", callback_data=f'ELO_1_1_2_1'),
+                InlineKeyboardButton("Both good", callback_data=f'ELO_1_1_2_1'),
 
             ]
         ]

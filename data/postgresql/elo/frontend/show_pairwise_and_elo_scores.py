@@ -76,7 +76,7 @@ generate_separate_plots = True  # Set to True for separate plots, False for a si
 question_types = ['sound_quality', 'timbre_similarity_source', 'timbre_similarity_target']
 question_types_subplot_titles = ['Sound quality', 'Timbre similarity to source instrument', 'Timbre similarity to target instrument']
 
-fontsize = 22
+fontsize = 21
 
 fig = make_subplots(rows=3, cols=1,
                     subplot_titles=question_types_subplot_titles,
@@ -190,11 +190,11 @@ for idx, question_type in enumerate(question_types, start=1):
     print('appearances_count=')
     pprint(appearances_count)
 
-    wrapper = textwrap.TextWrapper(width=25)  # You can adjust the width as needed
+    wrapper = textwrap.TextWrapper(width=18)  # You can adjust the width as needed
 
     def get_names_for_keys(keys):
         return [wrapper.fill(f'{model_title}'
-                f'<br>Dataset: {training_dataset}').replace('\n', '<br>') for model_path, model_title, training_dataset in keys]
+                f'. Dataset: {training_dataset}').replace('\n', '<br>') for model_path, model_title, training_dataset in keys]
 
     print(f'names for keys: {get_names_for_keys(list(appearances_count.keys()))}')
 
